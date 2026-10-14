@@ -11,7 +11,7 @@
 /**************************************************************************************************
  *                                      Local Prototypes
  **************************************************************************************************/
-static uint8_t SPI_GetFlagStatus(SPI_RegDef_t *pSPIx, uint32_t FlagName)
+uint8_t SPI_GetFlagStatus(SPI_RegDef_t *pSPIx, uint32_t FlagName)
 {
     if(pSPIx->SR & FlagName)
     {
