@@ -8,9 +8,11 @@
 #ifndef INC_STM32F401XX_H_
 #define INC_STM32F401XX_H_
 
+#include <stddef.h>
 #include <stdint.h>
 
 #define __vo volatile
+#define __weak __attribute__((weak))
 
 /* ARM Cortex Mx PRocessor NVIC ISERx Register Addresses */
 #define NVIC_ISER0                      ((__vo uint32_t*) 0xE000E100)
@@ -291,7 +293,11 @@ typedef struct
 #define IRQ_NUM_EXTI3                   9
 #define IRQ_NUM_EXTI4                   10
 #define IRQ_NUM_EXTI9_5                 23
+#define IRQ_NUM_SPI1                    35
+#define IRQ_NUM_SPI2                    36
 #define IRQ_NUM_EXTI15_11               40
+#define IRQ_NUM_SPI3                    51
+#define IRQ_NUM_SPI4                    84
 
 /* Macros for IRQ priorities */
 #define NVIC_IRQ_PRIORITY_0             0
