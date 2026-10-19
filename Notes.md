@@ -404,3 +404,6 @@ SDA:  ───HIGH──┐         ┌──HIGH───
 - _Fast Mode (Fm)_: Up to 400 kbit/s.
 - _Fast Mode Plus (Fm+)_: UP to 1Mbit/s/
 - _High Speed Mode (Hs-mode)_: Up to 3.4Mbit/s.
+
+### Bus Capacitance
+Bus capacitance limits how long the I2C wiring can be and how many devices can be onnected on the bus.

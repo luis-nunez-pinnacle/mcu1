@@ -102,9 +102,9 @@ typedef struct
  *                                      Function Prototypes
  **************************************************************************************************/
 
- /**
- * Peripheral clock setup
- */
+/**
+* Peripheral clock setup
+*/
 void SPI_ClockControl(SPI_RegDef_t *pSPIx, uint8_t EnOrDi);
 
 
