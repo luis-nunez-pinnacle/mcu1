@@ -79,6 +79,7 @@ void I2C_DeInit(I2C_RegDef_t *pI2Cx);        /* Uses RCC_APB1RSTR [21,22,23] for
  * Data Send and Receive
  */
 void I2C_MasterSendData(I2C_Handle_t *pI2CHandle, uint8_t *pTxBuffer, uint32_t Len, uint8_t SlaveAddr);
+void I2C_MasterReceiveData(I2C_Handle_t *pI2CHandle, uint8_t *pRxBuffer, uint32_t Len, uint8_t SlaveAddr);
 
 /**
  * IRQ Configuration and ISR handling
@@ -92,6 +93,7 @@ void I2C_IRQPriorityConfig(uint8_t IRQNumber, uint8_t IRQPriority);
 
 void I2C_PeripheralControl(I2C_RegDef_t  *pI2Cx, uint8_t EnOrDi);
 //uint8_t I2C_GetFlagStatus(I2C_RegDef_t *pI2Cx , uint32_t FlagName);
+void I2C_ManageAcking(I2C_RegDef_t  *pI2Cx, uint8_t EnOrDi);
 
 /**
  * Application callback
