@@ -26,7 +26,7 @@ _SWO (Serial Wire Output):_ is an _optional, unidirectional_ pin that carries tr
 _SWV (Serial Wire Viewer)_ is the _protocol_ that structures the data on the SWO pin. It is decoded by the debugger/IDE.
 
 SWV frames can carry:
-- ITM stimulus prots 0-31 (software-generated data)
+- ITM stimulus ports 0-31 (software-generated data)
     - Port 0 -> print-style text
     - Port 31 -> RTOS event viewer
 - DWT events (cycle count, PC samples, data access, exceptions)
