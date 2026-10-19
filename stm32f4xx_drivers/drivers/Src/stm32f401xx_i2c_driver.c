@@ -150,6 +150,7 @@ void I2C_Init(I2C_Handle_t *pI2CHandle)
 {
     uint32_t tmpreg = 0;
 
+
     // Enable the clock for the I2Cx peripheral
     I2C_ClockControl(pI2CHandle->pI2Cx, ENABLE);
 
@@ -193,6 +194,18 @@ void I2C_Init(I2C_Handle_t *pI2CHandle)
         tmpreg |= (ccr_value & 0xFFF);
     }
     pI2CHandle->pI2Cx->CCR = tmpreg;
+
+    // TRISE Configuration
+    if(pI2CHandle->I2CConfig.I2C_SCLSpeed <= I2C_SCL_SPEED_SM)
+    {
+        tmpreg = (RCC_GetPCLK1Value() / 10000000U + 1u);
+    }
+    else /* Fast Mode*/
+    {
+        tmpreg = ((RCC_GetPCLK1Value() * 300) / 1000000000U) + 1u; 
+    }
+
+    pI2CHandle->pI2Cx->TRISE = (tmpreg & 0x3F);
     
 }
 
