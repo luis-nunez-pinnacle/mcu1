@@ -59,6 +59,9 @@ typedef struct
 //#define I2C_PECERR                 (12 << I2C_SR1_PECERR)
 #define I2C_FLAG_TIMEOUT            (14 << I2C_SR1_TIMEOUT)
 
+#define I2C_DISABLE_SR               RESET
+#define I2C_ENABLE_SR                SET
+
 
 /**************************************************************************************************
  *                                      Function Prototypes
@@ -78,8 +81,8 @@ void I2C_DeInit(I2C_RegDef_t *pI2Cx);        /* Uses RCC_APB1RSTR [21,22,23] for
 /**
  * Data Send and Receive
  */
-void I2C_MasterSendData(I2C_Handle_t *pI2CHandle, uint8_t *pTxBuffer, uint32_t Len, uint8_t SlaveAddr);
-void I2C_MasterReceiveData(I2C_Handle_t *pI2CHandle, uint8_t *pRxBuffer, uint32_t Len, uint8_t SlaveAddr);
+void I2C_MasterSendData(I2C_Handle_t *pI2CHandle, uint8_t *pTxBuffer, uint32_t Len, uint8_t SlaveAddr, uint8_t Sr);
+void I2C_MasterReceiveData(I2C_Handle_t *pI2CHandle, uint8_t *pRxBuffer, uint32_t Len, uint8_t SlaveAddr, uint8_t Sr);
 
 /**
  * IRQ Configuration and ISR handling
