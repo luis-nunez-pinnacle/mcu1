@@ -219,7 +219,7 @@ flowchart LR
 - _SYSCFG routing_: Multiplexers select which GPIO controls a given EXTI line (configured using `SYSCFG->EXTI[x]`). **You cannot use `PA0` and `PB0` as EXTI inputs simultaneously.**
 
 ### Practical Hardware Example - Nucleo-F401RE User Button
-On the Nucle-F401RE board, the onboard blue user button is hardwired to `PC13`:
+On the Nucleo-F401RE board, the onboard blue user button is hardwired to `PC13`:
 1. Pin Map: `PC13` connect to **EXTI Line 13**
 2. The `SYSCFG_EXTICR4` register routes Port C to EXTI13.
 3. Pressing the button pulls the line LOW/HIGH, triggering the `EXTI15_10` shared interrupt line in the NVIC.
@@ -251,7 +251,7 @@ Floating (High-Z) inputs are susceptible to electromagnetic noise, causing unpre
     - _Requirement_: Requires an internal or external pull-up resistor to pull the line HIGH to $V_{DD}$. Crucial for shared buses like _I2C_ or level shifting.
 
 **Slew Rate (Output Speed)**
-Configures how fast the pin transitions between logic leves (0 -> 1 and 1 -> 0).
+Configures how fast the pin transitions between logic levels (0 -> 1 and 1 -> 0).
 - Options: Low, Medium, High and Very high.
 - Rules of Thumb: Use higher speeds only for fast signals (e.g. SPI at 20MHz) to reduce EMI, ringing, and power consumption.
 
@@ -283,7 +283,7 @@ A standard module folder for custom peripheral drivers:
 ```text
 Drivers/
 ├── Inc/
-│   ├── stm32f401xx.h      <-- Base addresses, MCU-specific structures & bitfield macros
+│   ├── stm32f401xx.h      <-- Base addresses, MCU-specific structures & bit field macros
 │   ├── gpio_driver.h      <-- GPIO driver API prototypes, config structs, & macros
 │   ├── spi_driver.h       <-- SPI driver API prototypes
 │   ├── i2c_driver.h       <-- I2C driver API prototypes
@@ -407,3 +407,129 @@ SDA:  ───HIGH──┐         ┌──HIGH───
 
 ### Bus Capacitance
 Bus capacitance limits how long the I2C wiring can be and how many devices can be onnected on the bus.
+
+
+## UART
+
+### Overview
+
+The Universal Synchronoues/Asyncrhonous Receiver Transmitter is a flexible hardware block that handles point-to-point serial communication between microncotroller and external peripherals of computers (often interfaced via RS-232, RS-485, or USB-to-UART bridge ICs)
+
+- **USART vs UART:**
+    - _UART_: Asynchronous mode only (no dedicated clock line).
+    - _USART_: Supports both _Asynchronous_ and _Synchronous_ modes. Most modern microcontrollers (including STM32) integrate USART modules.
+- _Asynchrnous Mode_: Transmitting and receiving devices run on independent clock sources set to the same speed (baud rate). Uses Start/Stop bits to align frames.
+- _Synchronous Mode_: A separate clock pin (_CK_) is driven by the transmitter to synchronize data, eliminating the need for start/stop bits.
+
+### Hardware Pins and Flow Control
+
+#### Basic Communication Pins
+- _TX (Transmit)_: Data output line. Held _HIGH (Idle state)_ when transmision is ocurring.
+- _RX (Receive)_: Data input line. The RX engine continously oversamples this pin to detect the leading edge of a frame.
+
+#### Hardware Flow Control
+Prevents receiver buffer overruns during high-speed transfers. Both signals are **Active LOW**.
+
+- _RTS (Request To Send)_: Output from the receiver indicating it is ready to accept data (pull _LOW_ when ready).
+- _CTS (Clear To Send)_: Input to the transmitter check before sending data. Transmission only proceeds while CTS is held _LOW_ by the external reciever.
+
+
+### Frame Format
+A single serial _frame_ is a packet containing control, data, and error-checking bits transferred sequentially from _LSB to MSB_:
+
+```text
+       ┌───────────┬─────────────────────────┬──────────────┬─────────────┐
+IDLE   │ START BIT │  DATA BITS (5 to 9)     │ PARITY BIT   │ STOP BIT(S) │  IDLE
+(HIGH) │   (LOW)   │   (LSB ───► MSB)        │  (Optional)  │   (HIGH)    │ (HIGH)
+───────└───1 bit───┴─────────────────────────┴────1 bit─────┴──1 to 2 bits┴────────
+```
+- _Start Bit_: Always 1 bit, indicatied by _HIGH-to-LOW_ transition of the line.
+- _Data Bits_: Typically _8 bits_ (configurable from 5 to 9 bits).
+- _Parity Bit (Optional Error Check)_: 
+    - _Even Parity_: Parity is set to `1` if the count of `1`s in the data bits is odd (making total `1`s even).
+    - _Oddd Parity_: Parity is set to `1` if the count of `1`s in the data bit is even (making total `1`s odd).
+- _Stop Bit(s)_: Holds the line _HIGH_ at the end of a frame (configurable to 0.5, 1, 1.5, or 2 bits).
+
+### Baud Rate and Oversampling
+#### Baud Rate
+- Expressed in _bits-per-second (bps)_ (common rates: 9600, 19200, 38400, 57600, 115200).
+- Dictates the exact bit durarion: Tbit = 1/ baudrate
+
+#### Receiver Oversampling
+To distinguish valid data from noise, the USART RX hardware samples the incoming bit line multiple times per bit duration (typically _16x_ or _8x_ oversampling)
+
+- _Majority Voting_: The receiver takes samples around the middle of the bit period (e.g., samples 7,8 and 9 in 16x mode) and uses a majority vote to determine if the logic level is a valid `0` or `1`.
+
+#### Baud Rate Generator (`USART_BRR`)
+The target baud reate is generated by dividing the peripheral clock frquency uisng _Baud Rate Register_ (`USART_BRR`):
+Baud Rate = fPCLK / (Oversampleing * USARTDIV)
+- `USARTDIV` is an unsigned dixed-point number stored across _Mantissa_ and _Fraction_ bitfields in the `USART_BRR` register.
+
+#### Hardware Architecture and STM32 Nuances
+Key internal clock if the USART peripheral
+1. Baud rate generatetor: divides the bus clock (fPCLK)
+2. Tx and Rx Shift Registers: Convert paralelel data from software into serial bitstreams (TX), and serial bitstreams back into parallel data (RX).
+3. Transmit/Receiver Buffer (`DR`/`TDR`/`RDR`): Hold data bytes for CU/DMA access.
+4. Control Logic: Manages flags (e.g., `TXE`, `TC`, `RXNE`), interrups, and parity checks.
+
+> STM32F4 Specific note: STM32F4xx microcontrollers do **not** feature hardware FIFO memory buffer in their USART peripherals; they rely on single-entry Data Registers (`DR`) paired with DMA or Interrupt handlers for continuous transfers.
+
+
+
+
+
+
+
+
+
+
+
+> stands for Universal Asynchronous Receiver Transmitter
+
+> USART supports both asynchronous and synchronous modes. 
+
+> All modern microcontrollers come with USART module instead of UART module.
+
+> There is no specific port for USART communication. They commonly used in conjugation with protocols like RS-232, RS-434, USB, etc.
+
+> In synchronous transmission, the clock is sent separately from the data and no start/stop bits are used.
+
+> USART hardware components: 1) baudrate generator, 2) Tx and Rx shift registers, 3) transmit/receive control blocks, 4) Transmit/receive buffers, 5) First-in, First-out (FIFO) buffer memory. 
+
+> STM32F4xx based MCUs don't support FIFOs
+
+> UART pins requires only 2 pins: Tx and Rx.
+
+> If not tranmission is going on, Tx line is held HIGH (idle state)
+
+> The USART Rx engine continously samples the Rx line to detect the start bit of a fram. When a start bit of the fram is detected, the frame reception kick in on the Rx line.
+
+> CTS (Clear To Send) and RTS (Request To Send) are pins required for hardware flow control. Both CTS and RTS are an active low pins.
+
+> A frame referes to the entire data packet which is being sent or received during communication. 
+
+> Typical UART frame format: start bit (1bit), data frame from lsb to msb (5-9 bits), optional parity bit (1 bit), stop bit (always HIGH) (1-2 bit)
+
+> Baudrate: how fast the data is sent over serial line. Usually express bits-per-second (bps). This value determines how long the transmitter holds a serial line high or low. 
+
+> Both transmitting and receiving devices should operate at the same rate. 
+
+> The baud rates (typically 2400, 4800, 9600, 19200, 38400, 57600, 115200) depend on the peripheral clock frequency of the UART peripheral.
+
+> Syncrhononization bits (2-3 bits) are the start bit and stop bit/s. There is always 1 start bit, but stop bits are configurable (even 1.5-bit length stop bit).
+
+> Start bit: data line going from HIGH to LOW.
+
+> Stop bit: data line going from LOW to HIGH.
+
+> Parity: simplest method of error detection. Parity is the number of ones appearing in the binary form o a number. 
+
+> Even parity: if total number of 1s is odd, the parity bit becomes 1 to make the sum of data 1s and partiy bit equal to an even number. Then, if the total number of 1s is even, parity bit remains 0.
+ 
+> Odd partity: if total number of 1s is even, the parity bit becoms 1 to make the sum of data 1s  and parity bit equal to an odd number. Then, if the total number 1s is odd, parity bit remains 0.
+
+> UART-Oversampling is a technique used by the receive engine of the USART peripheral. 
+
+> The receiver implement different user-configurable oversampling techiniques for data recovery by discriminating between valid incoming data and noise.
+
+> Baudrate calculation depends on the frequency of the peripheral clock, the oversampled chosen and the value set in divide factor (USART_BRR register -- compused by mantissa and fraction). 
